@@ -105,7 +105,11 @@ module Psych
               klass.with_exclusive_scope { klass.find(id) }
             end
           rescue ActiveRecord::RecordNotFound
-            raise Delayed::DeserializationError
+            foo = klass.new
+            payload["attributes"].each do |k, v|
+              foo[k] = v
+            end
+            foo
           end
         when /^!ruby\/Mongoid:(.+)$/
           klass = resolve_class($1)
