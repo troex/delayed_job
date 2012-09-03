@@ -3,7 +3,7 @@ if defined?(ActiveRecord)
     # serialize to YAML
     def encode_with(coder)
       coder["attributes"] = @attributes
-      coder.tag = ['!ruby/ActiveRecord', self.class.name].join(':')
+      coder.tag = ['!ruby/object', self.class.name].join(':')
     end
   end
 end
