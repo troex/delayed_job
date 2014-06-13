@@ -1,9 +1,17 @@
 if defined?(ActiveRecord)
-  class ActiveRecord::Base
-    # serialize to YAML
-    def encode_with(coder)
-      coder["attributes"] = @attributes
-      coder.tag = ['!ruby/object', self.class.name].join(':')
+  ActiveRecord::Base.class_eval do
+    if instance_methods.include?(:encode_with)
+      def encode_with_override(coder)
+        encode_with_without_override(coder)
+        coder.tag = "!ruby/object:#{self.class.name}"
+      end
+      alias_method :encode_with_without_override, :encode_with
+      alias_method :encode_with, :encode_with_override
+    else
+      def encode_with(coder)
+        coder["attributes"] = attributes
+        coder.tag = "!ruby/object:#{self.class.name}"
+      end
     end
   end
 end
@@ -99,11 +107,7 @@ module Psych
           payload = Hash[*object.children.map { |c| accept c }]
           id = payload["attributes"][klass.primary_key]
           begin
-            if ActiveRecord::VERSION::MAJOR == 3
-              klass.unscoped.find(id)
-            else # Rails 2
-              klass.with_exclusive_scope { klass.find(id) }
-            end
+            klass.unscoped.find(id)
           rescue ActiveRecord::RecordNotFound
             raise Delayed::DeserializationError
           end
@@ -113,6 +117,16 @@ module Psych
           begin
             klass.find(payload["attributes"]["_id"])
           rescue Mongoid::Errors::DocumentNotFound
+            raise Delayed::DeserializationError
+          end
+        when /^!ruby\/DataMapper:(.+)$/
+          klass = resolve_class($1)
+          payload = Hash[*object.children.map { |c| accept c }]
+          begin
+            primary_keys = klass.properties.select { |p| p.key? }
+            key_names = primary_keys.map { |p| p.name.to_s }
+            klass.get!(*key_names.map { |k| payload["attributes"][k] })
+          rescue DataMapper::ObjectNotFoundError
             raise Delayed::DeserializationError
           end
         else

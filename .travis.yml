@@ -1,11 +1,23 @@
 language: ruby
-notifications:
-  disabled: true
-only:
-  - master
+env:
+  global:
+    - JRUBY_OPTS="$JRUBY_OPTS --debug"
+  matrix:
+    - RAILS_VERSION="~> 3.0.0"
+    - RAILS_VERSION="~> 3.1.0"
+    - RAILS_VERSION="~> 3.2.0"
+    - RAILS_VERSION="~> 4.0.0"
+    - RAILS_VERSION="~> 4.1.0"
 rvm:
-  - 1.8.7
-  - 1.9.2
   - 1.9.3
-  - jruby
-  - rbx
+  - 2.0.0
+  - 2.1.1
+  - rbx-2
+  - ruby-head
+  - jruby-19mode
+  - jruby-head
+matrix:
+  allow_failures:
+    - rvm: jruby-19mode
+    - rvm: jruby-head
+    - rvm: ruby-head

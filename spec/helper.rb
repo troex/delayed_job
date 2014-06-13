@@ -1,10 +1,5 @@
-unless ENV['CI']
-  require 'simplecov'
-  SimpleCov.start
-end
-
-require 'bundler/setup'
 require 'logger'
+require 'rspec'
 
 require 'action_mailer'
 require 'active_support/dependencies'
@@ -12,6 +7,15 @@ require 'active_record'
 
 require 'delayed_job'
 require 'delayed/backend/shared_spec'
+
+require 'simplecov'
+require 'coveralls'
+
+SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
+  SimpleCov::Formatter::HTMLFormatter,
+  Coveralls::SimpleCov::Formatter
+]
+SimpleCov.start
 
 Delayed::Worker.logger = Logger.new('/tmp/dj.log')
 ENV['RAILS_ENV'] = 'test'
@@ -22,7 +26,7 @@ Delayed::Worker.backend = :test
 ActiveSupport::Dependencies.autoload_paths << File.dirname(__FILE__)
 
 # Add this to simulate Railtie initializer being executed
-ActionMailer::Base.send(:extend, Delayed::DelayMail)
+ActionMailer::Base.extend(Delayed::DelayMail)
 
 
 # Used to test interactions between DJ and an ORM
@@ -41,7 +45,7 @@ class Story < ActiveRecord::Base
   self.primary_key = 'story_id'
   def tell; text; end
   def whatever(n, _); tell*n; end
-  default_scope where(:scoped => true)
+  default_scope { where(:scoped => true) }
 
   handle_asynchronously :whatever
 end
@@ -49,5 +53,9 @@ end
 RSpec.configure do |config|
   config.after(:each) do
     Delayed::Worker.reset
+  end
+
+  config.expect_with :rspec do |c|
+    c.syntax = :expect
   end
 end

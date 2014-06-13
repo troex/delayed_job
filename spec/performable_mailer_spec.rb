@@ -1,41 +1,41 @@
-require 'spec_helper'
+require 'helper'
 
 require 'action_mailer'
 class MyMailer < ActionMailer::Base
   def signup(email)
-    mail :to => email, :subject => "Delaying Emails", :from => "delayedjob@example.com"
+    mail :to => email, :subject => "Delaying Emails", :from => "delayedjob@example.com",:body => 'Delaying Emails Body'
   end
 end
 
 describe ActionMailer::Base do
   describe "delay" do
-    it "should enqueue a PerformableEmail job" do
-      lambda {
+    it "enqueues a PerformableEmail job" do
+      expect {
         job = MyMailer.delay.signup('john@example.com')
-        job.payload_object.class.should == Delayed::PerformableMailer
-        job.payload_object.method_name.should == :signup
-        job.payload_object.args.should == ['john@example.com']
-      }.should change { Delayed::Job.count }.by(1)
+        expect(job.payload_object.class).to eq(Delayed::PerformableMailer)
+        expect(job.payload_object.method_name).to eq(:signup)
+        expect(job.payload_object.args).to eq(['john@example.com'])
+      }.to change { Delayed::Job.count }.by(1)
     end
   end
 
   describe "delay on a mail object" do
-    it "should raise an exception" do
-      lambda {
+    it "raises an exception" do
+      expect {
         MyMailer.signup('john@example.com').delay
-      }.should raise_error(RuntimeError)
+      }.to raise_error(RuntimeError)
     end
   end
 
   describe Delayed::PerformableMailer do
     describe "perform" do
-      it "should call the method and #deliver on the mailer" do
-        email = mock('email', :deliver => true)
-        mailer_class = mock('MailerClass', :signup => email)
+      it "calls the method and #deliver on the mailer" do
+        email = double('email', :deliver => true)
+        mailer_class = double('MailerClass', :signup => email)
         mailer = Delayed::PerformableMailer.new(mailer_class, :signup, ['john@example.com'])
 
-        mailer_class.should_receive(:signup).with('john@example.com')
-        email.should_receive(:deliver)
+        expect(mailer_class).to receive(:signup).with('john@example.com')
+        expect(email).to receive(:deliver)
         mailer.perform
       end
     end

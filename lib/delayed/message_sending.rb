@@ -1,8 +1,7 @@
-require 'active_support/basic_object'
 require 'active_support/core_ext/module/aliasing'
 
 module Delayed
-  class DelayProxy < ActiveSupport::BasicObject
+  class DelayProxy < Delayed::Compatibility.proxy_object_class
     def initialize(payload_class, target, options)
       @payload_class = payload_class
       @target = target
